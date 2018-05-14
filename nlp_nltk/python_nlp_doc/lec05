@@ -235,24 +235,318 @@
     换句话说，我们要先使用查找表，如果它不能指定一个标记就使用默认标注器，这个过程叫做 回退。
     我们可以通过指定一个标注器作为另一个标注器的参数做到这个。
 
-    现在查找标注器将只存储名词以外的词的词-标记对。
+    现在查找标注器将只存储名词以外的词的词-标记对，只要它不能给一个词分配标记，它将会调用默认标注器。
+        >>> baseline_tagger = nltk.UnigramTagger(model=likely_tags,backoff=nltk.DefaultTagger('NN'))
+
+    示例：
+        查找标注器的性能，使用不同大小的模型。
+            # -*- coding:utf-8 -*-
+            import nltk
+            from nltk.corpus import brown
+
+            def performance(cfd, wordlist):
+                lt = dict((word, cfd[word].max()) for word in wordlist)
+                baseline_tagger = nltk.UnigramTagger(model=lt, backoff=nltk.DefaultTagger('NN'))
+                return baseline_tagger.evaluate(brown.tagged_sents(categories='news'))
+
+            def display():
+                import pylab
+                words_by_freq = list(nltk.FreqDist(brown.words(categories='news')))
+                cfd = nltk.ConditionalFreqDist(brown.tagged_words(categories='news'))
+                sizes = 2** pylab.arange(5)
+                perfs = [performance(cfd, words_by_freq[:size]) for size in sizes]
+                pylab.plot(sizes,perfs,'-bo')
+                pylab.title('Lookup Tagger Performance with Varying Model Size.')
+                pylab.xlabel('Model Size')
+                pylab.ylabel('Performance')
+                pylab.show()
+
+            display()
+
+    观察图5-4，随着模型规模的增长，最初的性能增加迅速，最终达到一个稳定水平，这时模型的规模大量增加性能的提高很小。
+
 
 
 5.4.4 评估
+    到对准确性得分的强调。 -- NLP的一个中心主题。
+
+    一个模块输出中的任何错误都在下游模块大大的放大。
+
+    我们对比专家分配的标记来评估一个标注器的性能。
+    由于我们通常很难获得专业和公正的人的判断，所以使用 黄金标准 测试数据来代替。
+
+    这是一个已经手动标注并作为自动系统评估标准而被接受的语料库。
+    当标注器对给定词猜测的标记与黄金标准标记相同，标注器被视为是正确的。
+
+    当然，设计和实施原始的黄金标准标注的也是人，更深入的分析可能会显示黄金标准中的错误，或者可能最终会导致一个修正的标记集和更复杂的知道方针。
+    然而，黄金标准就目前有关的自动标注器的评估而言被定义为"正确的"。
+
+
+
+
 5.5 N-gram标注
-    一元标注（Unigram Tagging)
-    分离训练和测试数据
-    一般的N-gram的标注
-    组合标注器
-    标注生词
-    存储标注器
-    性能限制
-    跨句子边界标注
+5.5.1 一元标注（Unigram Tagging)
+    一元标注器基于一个简单的统计算法：
+        对每个标识符分配这个独特的标识符最有可能的标记。
+
+    例如：
+        它将分配标记JJ 给词frequent 的所有出现，
+        因为frequent 用作一个形容词（例如：a frequent word）比用作一个动词（例如：I frequent this cafe）更常见。
+    一个一元标注器的行为就像一个查找标注器，除了有一个更方便的建立它的技术，称为训练。
+
+    例子：
+        我们训练一个一元标注器，用它来标注一个句子，然后评估：
+            >>> from nltk.corpus import brown
+            >>> brown_tagged_sents = brown.tagged_sents(categories='news')
+            >>> brown_sents = brown.sents(categories='news')
+            >>> unigram_tagger = nltk.UnigramTagger(brown_tagged_sents)
+            >>> unigram_tagger.tag(brown_sents[2007])
+            [('Various', 'JJ'), ('of', 'IN'), ('the', 'AT'), ('apartments', 'NNS'), ('are', 'BER'), ('of', 'IN'), ('the', 'AT'), ('terrace', 'NN'), ('type', 'NN'), (',', ','), ('being', 'BEG'), ('on', 'IN'), ('the', 'AT'), ('ground', 'NN'), ('floor', 'NN'), ('so', 'QL'), ('that', 'CS'), ('entrance', 'NN'), ('is', 'BEZ'), ('direct', 'JJ'), ('.', '.')]
+            >>> unigram_tagger.evaluate(brown_tagged_sents)
+            0.9349006503968017
+
+    我们训练一个UnigramTagger，通过在我们初始化标注器时指定已标注的句子数据作为参数。
+    训练过程中涉及检查每个词的标记，将所有词的最可能的标记存储在一个字典里面，这个字典存储在标注器内部。
+
+
+
+5.5.2 分离训练和测试数据
+    现在，我们正在一些数据上训练一个标注器，必须小心不要在相同的数据上测试，如我们在前面的例子中的那样。
+    一个只是记忆它的训练数据，而不试图建立一个一般的模型的标注器会得到一个完美的得分，但在标注新的文本时将是无用的。
+
+        >>> size = int(len(brown_tagged_sents)*0.9)
+        >>> size
+        4160
+        >>> train_sents = brown_tagged_sents[:size]
+        >>> test_sents = brown_tagged_sents[size:]
+        >>> unigram_tagger = nltk.UnigramTagger(train_sents)
+        >>> unigram_tagger.evaluate(test_sents)
+        0.8121200039868434
+
+
+5.5.3 一般的N-gram的标注
+    在基于unigrams处理一个语言处理任务时，我们使用上下文中的一个项目。
+
+    标注的时候，我们只考虑当前的标识符，与更大的上下文隔离。
+
+    给定一个模型，我们能做的最好的是为每个词标注其先验的最可能的标记。
+    这意味着我们将使用相同的标记标注一个词，如wind，不论它出现的上下文是the wind还是to wind。
+
+    一个n-gram标注器 是一个一元unigram标注器的一般化，它的上下文是当前词和它迁建n-1个标识符的词性标记。
+
+    p193 图5-5 标注器上下文
+
+    注：
+        1-gram标注器是一元标注器unigram tagger另一个名称：即用于标注一个标识符的上下文的只是标识符本身。
+        2-gram标注器也称为二元标注器bigram taggers；
+        3-gram标注器也称为三元标注器trigram taggers.
+
+    NgramTagger类使用一个已标注的训练语料库来确定对每个上下文哪个词性标记最有可能。
+
+
+    在这里，我们看到一个n-gram标注器的特殊情况，即一个bigram标注器。
+        >>> bigram_tagger = nltk.BigramTagger(train_sents)
+        >>> bigram_tagger.tag(brown_sents[2007])
+        [('Various', 'JJ'), ('of', 'IN'), ('the', 'AT'), ('apartments', 'NNS'), ('are', 'BER'), ('of', 'IN'), ('the', 'AT'), ('terrace', 'NN'), ('type', 'NN'), (',', ','), ('being', 'BEG'), ('on', 'IN'), ('the', 'AT'), ('ground', 'NN'), ('floor', 'NN'), ('so', 'CS'), ('that', 'CS'), ('entrance', 'NN'), ('is', 'BEZ'), ('direct', 'JJ'), ('.', '.')]
+        >>> unseen_sent = brown_sents[4203]
+        >>> bigram_tagger.tag(unseen_sent)
+        [('The', 'AT'), ('population', 'NN'), ('of', 'IN'), ('the', 'AT'), ('Congo', 'NP'), ('is', 'BEZ'), ('13.5', None), ('million', None), (',', None), ('divided', None), ('into', None), ('at', None), ('least', None), ('seven', None), ('major', None), ('``', None), ('culture', None), ('clusters', None), ("''", None), ('and', None), ('innumerable', None), ('tribes', None), ('speaking', None), ('400', None), ('separate', None), ('dialects', None), ('.', None)]
+
+    请注意，bigram标注器能够标注训练中它看到过的句子中的所有词，但对一个没见过的句子表现很差。
+    只要遇到一个新词，就无法给它分配标记。
+    它不能标注下面的词，如million，即使是在训练过程中看到过的，只是因为在训练过程中从来没有见过它前面有一个None标记的词。
+    因此，标注器标注句子的其余部分也失败了。
+    它的整体准确度得分非常低：
+        >>> bigram_tagger.evaluate(test_sents)
+        0.10206319146815508
+
+    当n越大，上下文的特异性就会增加，我们要标注的数据中包含训练数据中不存在的上下文的几率也增大。
+    这杯称为 数据稀疏问题，在NLP中是相当普遍的。
+
+    因此，我们的研究结果的精度和覆盖范围之间需要有一个权衡。
+    —— 信息检索中的 精度/召回 权衡。
+
+    注:
+        N-gram标注器不应考虑跨越句子边界的上下文。
+        因此，NLTK的标注器被设计用于句子链表，一个句子是一个词链表。
+        在一个句子的开始，t_{n-1}和前面的标记被设置为None.
+
+
+5.5.4 组合标注器
+    解决精度和覆盖范围之间的权衡的一个办法是尽可能的使用更精确的算法，但却在很多时候落后于具有更广覆盖范围的算法。
+
+    例如：
+        我们可以按如下方式组合bigram标注器，unigram标注器和一个默认标注器。
+
+        1. 尝试使用bigram 标注器标注标识符。
+        2. 如果bigram 标注器无法找到一个标记，尝试unigram 标注器。
+        3. 如果unigram 标注器也无法找到一个标记，使用默认标注器。
+
+    大多数NLTK标注器允许指定一个回退标注器。
+    回退标注器自身可能也有一个回退标注器。
+        >>> t0 = nltk.DefaultTagger('NN')
+        >>> t1 = nltk.UnigramTagger(train_sents, backoff=t0)
+        >>> t2 = nltk.BigramTagger(train_sents, backoff=t1)
+        >>> t2.evaluate(test_sents)
+        0.8452108043456593
+
+    请注意，我们在标注器初始化时指定回退标注器，从而使训练能利用回退标注器。
+
+    如果在一个上下文中的bigram标注器将分配与它的unigram回退标注器一样的标记，那么bigram标注器丢弃训练的实例。
+    这样保持尽可能小的bigram标注器模型。
+    我们可以进一步指定一个标注器需要看到一个上下文的多个实例才能保留它。
+
+    例如：nltk.BigramTagger(sents, cutoff=2, backoff=t1) 将会丢弃那些只看到一次或两次的上下文。
+
+
+
+5.5.5 标注生词
+    我们标注生词的方法仍然是回退到一个正则表达式标注器或一个默认标注器。
+    这些都无法利用上下文。
+
+    因此，如果我们的标注器遇到词blog，训练过程中没有看到过，它会分配相同的标记，不论这个词出现的上下文是the blog还是to blog。
+    我们怎样才能更好地处理这些生词，或者词汇表以外的项目？
+
+    一个有用的基于上下文标注生词的方法是限制一个标注器的词汇表为最频繁的n个词。
+    使用Python字典映射词及其属性 --  (word,tag)形式的一个已标注是 词和词性标记的关联
+    的方法替代每个其他的词为一个特殊的词UNK。
+
+    训练时，一个unigram标注器可能会学到UNK通常是一个名词。
+    然而，n-gram标注器会检测它的一些其他标记中的上下文。
+
+    例如：如果前面的词是to(标注为TO),那么UNK可能对标注为一个动词。
+
+
+5.5.6 存储标注器
+    在大语料库上训练一个标注器可能需要大量的时间。
+    没有必要在每次我们需要的时候训练一个标准器，很容易将一个训练好的标注器保存到一个文件以后重复使用。
+
+    # 保存我们的标注器t2到文件t2.pkl:
+    pickle load dump *.pkl文件
+
+5.5.7 性能限制
+    一个n-gram 标注器的性能上限是什么？
+    方法1：
+        考虑一个trigram 标注器的情况。它遇到多少词性歧义的情况？
+        我们可以根据经验决定这个问题的答案：
+        假设我们总是挑选在这种含糊不清的上下文最优可能的标记，可以得出trigram标注器性能的一个下界。
+
+    方法2：
+        研究它的错误。
+        有些不标记可能会被别的更难分配，可能需要专门对这些数据进行预处理或后处理。
+        一个方便的方式查看标注错误是 混淆矩阵。
+        它用图表表示期望的标记（黄金标准）与实际由标注器产生的标记。
+
+        >>> test_tags = [tag for sent in brown.sents(categories='editorial')
+        ...     for (word,tag) in t2.tag(sent)]
+        >>> gold_tags = [tag for (word,tag) in brown.tagged_words(categories='editorial')]
+
+        >>> print(nltk.ConfusionMatrix(gold_tags,test_tags))
+
+        基于这样的分析，我们可能会决定修改标记集。
+        或许标记之间很难做出的区分可以被丢弃，因为它在一些较大的处理任务的上下文中并不重要。
+
+    方法3：
+        来自人类标注者之间并非100％的意见一致。
+
+        一般情况下，标注过程会消除区别：
+            例如：当所有的人称代词被标注为PRP 时，词的特性通常会失去。
+            与此同时，标注过程引入了新的区别从而去除了含糊之处：
+            例如：deal标注为VB 或NN。
+            这种消除某些区别并引入新的区别的特点是标注的一个重要的特征，有利于分类和预测。
+            当我们引入一个标记集的更细的划分时，在n-gram 标注器决定什么样的标记分配给一个特定的词时，可以获得关于左侧上下文的更详细的信息。
+            然而，标注器同时也将需要做更多的工作来划分当前的标识符，只是因为有更多可供选择的标记。
+            相反，使用较少的区别（如简化的标记集），标注器有关上下文的信息会减少，为当前标识符分类的选择范围也较小。
+
+    训练数据中的歧义导致标注器性能的上限。
+    有时更多的上下文能解决这些歧义。
+
+    然而，在其他情况下，如(Abney, 1996)中指出的，只有参考语法或现实世界的知识，才能解决歧义。
+    尽管有这些缺陷，词性标注在用统计方法进行自然语言处理的兴起过程中起到了核心作用。
+    1990 年代初，统计标注器令人惊讶的精度是一个惊人的示范：可以不用更深的语言学知识解决一小部分语言理解问题，即词性消歧。
+
+5.5.8 跨句子边界标注
+    一个n-gram 标注器使用最近的标记作为为当前的词选择标记的指导。
+    当标记一个句子的第一个词时，trigram 标注器将使用前面两个标识符的词性标记，这通常会是前面句子的最后一个词和句子结尾的标点符号。
+    然而，在前一句结尾的词的类别与下一句的开头的通常没有关系。
+    为了应对这种情况，我们可以使用已标注句子的链表来训练、运行和评估标注器。
+
+        >>> brown_tagged_sents = brown.tagged_sents(categories='news')
+        >>> brown_sents = brown.sents(categories='news')
+        >>> size = int(len(brown_tagged_sents)*0.9)
+        >>> train_sents = brown_tagged_sents[:size]
+        >>> test_sents = brown_tagged_sents[size:]
+        >>> t0 = nltk.DefaultTagger('NN')
+        >>> t1 = nltk.UnigramTagger(train_sents, backoff=t0)
+        >>> t2 = nltk.BigramTagger(train_sents, backoff=t1)
+        >>> t2.evaluate(test_sents)
+        0.8452108043456593
+
+
 5.6 基于转换的标注
+
+    n-gram 标注器的一个潜在的问题：
+    问题1： 它们的n-gram表的大小（或语言模型）。
+        如果使用各种语言技术的标注器部署在移动计算设备上，在模型大小和标注器性能之间取得平衡是很重要的。
+
+        使用回退标注器的n-gram标注器可能存储trigram和bigram表，这是很大的稀疏矩阵列。
+    问题2： 上下文。
+        n-gram标注器从前面的上下文中获得的唯一的信息是标记，虽然词本身可能是一个有用的信息源。
+        n-gram模型使用上下文中的词的其他特征为条件是不切实际的。
+
+    本节中，我们考擦Brill标注，一种归纳标注方法，它的性能很好，使用的模型只有n-gram标注器的很小一部分。
+    Brill标注是一种基于转换你的学习，以它的发明者命名。
+
+    一般的想法很简单：
+        猜每个词的标记，然后返回和修复错误的。
+        在这种方式中，Brill标注器陆续将一个不良标注的文本转换成一个更好的。
+    与n-gram标注一样，这是有监督的学习方法，因为我们需要已标注的训练数据来评估标注器的猜测是否是一个错误。
+    然而，不像n-gram标注，它不计数观察结果，只编制一个转换修正规则链表。
+
+    Brill 标注的的过程通常是与绘画类比来解释的。
+    假设我们要画一棵树，包括大树枝、树枝、小枝、叶子和一个统一的天蓝色背景的所有细节。
+    不是先画树然后尝试在空白处画蓝色，而是简单的将整个画布画成蓝色，然后通过在蓝色背景上上色“修正”树的部分。
+    以同样的方式，我们可能会画一个统一的褐色的树干再回过头来用更精细的刷子画进一步的细节。
+
+    Brill 标注器的另一个有趣的特性：
+        规则是语言学可解释的。
+        与采用潜在的巨大的n-gram 表的n-gram 标注器相比，我们并不能从直接观察这样的一个表中学到多少东西，
+        而Brill标注器学到的规则可以。
+
+
 5.7 如何确定一个词的分类
-    形态学线索
-    句法线索
-    语义线索
-    新词
-    词性标注集中的形态学
+    我们已经详细研究了词类，现在转向一个更基本的问题：如何决定一个词属于哪一类？
+    首先应该考虑什么？
+        在一般情况下，语言学家使用形态学、句法和语义线索确定一个词的类别。
+
+5.7.1 形态学线索
+    -ness
+    -ment
+    -ing
+    -ed
+
+5.7.2 句法线索
+    上下文语境。
+    the near window ==>near为形容词
+
+5.7.3 语义线索
+5.7.4 新词
+    名词 是 开放类
+    借此 是 封闭类，词类成员随着很长时间的推移才逐渐改变。
+5.7.5 词性标注集中的形态学
+
 5.8 小结
+    1. 词可以组成类，如名词、动词、形容词以及副词。这些类被称为词汇范畴或者词性。
+        词性被分配短标签或者标记，如NN 和VB。
+    2. 给文本中的词自动分配词性的过程称为词性标注、POS 标注或只是标注。
+    3. 自动标注是NLP 流程中重要的一步，在各种情况下都十分有用，包括预测先前未见过的词的行为、分析语料库中词的使用以及文本到语音转换系统。
+    4. 一些语言学语料库，如布朗语料库，已经做了词性标注。
+    5. 有多种标注方法，如默认标注器、正则表达式标注器、unigram 标注器、n-gram 标注器。这些都可以结合一种叫做回退的技术一起使用。
+    6. 标注器可以使用已标注语料库进行训练和评估。
+    7. 回退是一个组合模型的方法：当一个较专业的模型（如bigram 标注器）不能为给定内容分配标记时，我们回退到一个较一般的模型（如unigram 标注器）
+    8. 词性标注是NLP 中一个重要的早期的序列分类任务：利用局部上下文语境中的词和标记对序列中任意一点的分类决策。
+    9. 字典用来映射任意类型之间的信息，如字符串和数字：freq['cat']=12。
+        我们使用大括号来创建字典：pos = {}，pos = {'furiously': 'adv', 'ideas': 'n', 'colorless':'adj'}。
+    10. N-gram 标注器可以定义较大数值的n，但是当n 大于3 时，我们常常会面临数据稀疏问题；
+        即使使用大量的训练数据，我们看到的也只是可能的上下文的一小部分。
+    11. 基于转换的标注学习一系列“改变标记s 为标记t 在上下文c 中”形式的修复规则，每个规则会修复错误，也可能引入（较小的）错误。
