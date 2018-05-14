@@ -1,0 +1,266 @@
+对于NLTK的学习:
+1.NLTK是什么？
+  Python中用于自然语言分析的第三方库
+
+  http://www.nltk.org/
+
+  都是英文的语料
+
+2.NLTK的模块对应的功能描述。
+    NLTK模块                    语言处理任务         功能描述
+    nltk.corpus                 获取和处理语料库     语料库和词典的标准化接口
+    nltk.tokenize, nltk.stem    字符串处理          分词，句子分解提取主干
+    nltk.collocations           搭配发现            t-检验，卡方，点互信息PMI
+    nltk.tag                    词性标识符           n-gram, backoff, Brill, HMM, TnT
+    nltk.classify, nltk.cluster 分类                决策树，最大熵，贝叶斯，EM，k-means
+    nltk.chunk                  分块                正则表达式，n-gram, 命名实体
+    nltk.parse                  解析                图标，基于特征，一致性，概率，依赖
+    nltk.sem, nltk.inference    语义解释             λ演算，一阶逻辑，模型检验
+    nltk.metrics                指标评测             精度，召回率，协议系数
+    nltk.probability            概率与估计           频率分布，平滑概率分布
+    nltk.app, nltk.chat         应用                图形化的关键字排序，分析器，WordNet查看器，聊天机器人
+    nltk.toolbox                语言学领域的工作      处理SIL工具箱格式的数据
+
+
+3. 安装和环境搭建
+    import nltk
+    nltk.download()
+    from nltk.book import *
+    # 加载英文的语料库
+
+4. NLTK能做什么？
+    1. 搜索文本
+        1.1 单词搜索
+        1.2 相似词搜索
+        1.3 相似关键词识别
+        1.4 词汇分布图
+        1.5 生成文本
+    2. 计数词汇
+        体裁           标识符     类型      词汇多样性
+        技能和爱好      82345     11935     6.9
+        幽默           21695     5017      4.3
+        小说：科学      14470     3233      4.5
+        新闻：报告文学   100554    14394     7.0
+        小说：浪漫       70022     8452      8.3
+        宗教            39399     6373      6.2
+
+5. 获得文本语料和词汇语料
+    通过nltk.download()下载配套的数据，本文文本语料库包括以下：
+        Gutenberg 古腾堡语料库
+            NLTK 包含古腾堡项目（Project Gutenberg）电子文本档案的经过挑选的一小部分文本。
+            该项目大约有25,000（现在是36,000 了）本免费电子图书。
+            import nltk
+            nltk.corpus.gutenberg.fileids()
+            # ['austen-emma.txt', 'austen-persuasion.txt',
+            # 'austen-sense.txt', 'bible-kjv.txt',
+            # ...'shakespeare-macbeth.txt', 'whitman-leaves.txt']
+
+        网络和聊天文本
+            NLTK 的网络文本小集合的内容包括Firefox 交流论坛，
+            在纽约无意听到的对话，
+            《加勒比海盗》的电影剧本，
+            个人广告和葡萄酒的评论等。
+            from nltk.corpus import webtext
+            webtext.fileids()
+            # ['firefox.txt', 'grail.txt', 'overheard.txt', 'pirates.txt', 'singles.txt', 'wine.txt']
+
+            >>> from nltk.corpus import nps_chat
+            >>> chatroom = nps_chat.posts('10-19-20s_706posts.xml')
+            >>> chatroom[123]
+            ['i', 'do', "n't", 'want', 'hot', 'pics', 'of', 'a', 'female', ',', 'I', 'can', 'look', 'in', 'a', 'mirror', '.']
+        布朗语料库
+            布朗语料库是第一个百万词级的英语电子语料库的，由布朗大学于1961 年创建。
+            这个语料库包含500 个不同来源的文本，按照文体分类，如：新闻、社论等。
+
+            http://icame.uib.no/brown/bcm-los.html
+
+        路透社语料库
+            路透社语料库包含10,788 个新闻文档，共计130 万字。
+            这些文档分成90 个主题，按照“训练”和“测试”分为两组。
+            这样分割是为了训练和测试算法的，这种算法自动检测文档的主题。
+            from nltk.corpus import reuters
+            reuters.fileids()
+            reuters.categories()
+
+        就职演说语料库
+            就职演说语料库，实际上是55 个文本的集合，每个文本都是一个总统的演说。
+            这个集合的一个有趣特性是它的时间维度。
+            from nltk.corpus import inaugural
+            inaugural.fileids()
+
+        标注文本语料库
+            包含语言学标注，
+            有词性标注、命名实体、句法结构、语义角色等。
+            NLTK 中提供了很方便的方式来访问这些语料库中的几个，还有一个包含语料库和语料样本的数据包。
+
+            http://www.nltk.org/data
+
+        其他语言的语料库
+            NLTK包含多国语言语料库。
+
+    文本语料库的结构：
+        语料库结构最简单的一种没有任何结构，仅仅是一个文本集合。
+        通常，文本会按照其可能对应的文本、来源、作者、语言等分类。
+
+        有时，这些类别会重叠，尤其是在按主题分类的情况下，因为一个文本可能与对个主题相关。
+        偶尔的，文本集有一个时间结构，新闻集合是最常见的例子。
+
+        NLTK语料阅读器支持高效的访问大量语料库，并且能用于处理新的语料库。
+
+    基本语料库函数：
+        fileids()                 语料库中的文件列表
+        fileids([categories])     这些分类对应的语料库中的文件
+        categories                语料库中的分类
+        categories([fileids])     这些文件对应的语料库中的分类
+        raw()                     语料库的原始内容
+        raw(fileids=[f1,f2,f3])   指定文件的原始内容
+        raw(categories=[c1,c2])   指定分类的原始内容
+        words()                   整个语料库中的词汇
+        words(fileids=[f1,f2])    指定文件中的词汇
+        words(categories=[c1,c2]) 指定分类中的词汇
+        sents()                   指定分类中的句子
+        sents(fileids=[f1,f2])    指定文件中的句子
+        sents(categories=[c1,c2]) 指定分类中的句子
+        abspath(fileid)           指定文件在磁盘上的位置
+        encoding(fileid)          文件的编码（如果知道的话）
+        open(fileid)              打开指定语料库文件的文件流
+        root()                    到本地安装的语料库根目录的路径
+
+
+6. NLTK中定义的基本语料库函数
+    载入你自己的语料库：
+        如果你有自己搜集的文本文件，并且想使用前面讨论的方法访问它们，
+        你可以很容易地在NLTK中的PlaintextCorpusReader帮助下载它们。
+
+    from nltk.corpus import PlaintextCorpusReader
+    corpus_root = '/usr/share/dict'
+    wordlists = PlaintextCorpusReader(corpus_roor,'.*')
+    wordlists.fileids()
+    wordlists.words('connetives')
+
+
+
+7. 条件频率分布
+
+    条件频率分布是频率分布的集合，每个频率分布有一个不同的“条件”，
+    这个条件通常是文本的类别。
+
+    当语料文本被分为几类（文体、主题、作者等）时，
+    我们可以计算每个类别独立的频率分布。
+
+    这将允许我们研究类别之间的系统性差异。
+
+    条件频率分布是一个对许多NLP 任务都有用的数据结构。
+
+    表2-4 NLTK中条件概率分布：
+        定义、访问和可视化一个计数的条件概率分布的常用方法和习惯用法
+
+    fdist = FreqDist(samples)  创建包含给定样本的频率分布
+    # fdist.inc(sample)          增加样本  # 报错，方法不存在
+    fdist['monstrous']         计数给定样本出现的次数
+    fdist.freq('monstrous')    给定样本的频率
+    fdist.N()                  样本总数
+    fdist.keys()               以频率递减顺序排序的样本链表
+    for sample in fdist:       以频率递减的顺序遍历样本
+    fdist.max()                数值最大的样本
+    fdist.tabulate()           绘制频率分布表
+    fdist.plot()               绘制频率分布图
+    fdist.hapaxes()            返回频次为1的词汇列表
+    fdist.elements()           <itertools.chain object>
+
+
+    fdist1 = FreqDist(text1)
+    type(fdist1)  #  <class 'nltk.probability.FreqDist'>
+
+    频率分布计数可观察事件，例如文本中的单词的出现。
+    条件频率分布需要将每个事件与条件配对。
+    因此，不是处理一个单词序列，我们必须处理一个配对序列：
+        genre_word = [(genre,word) for genre in ['news','romance'] for word in brown.words(categories=genre)]
+        cfd = ntlk.ConditionalFreqDist(genre_word)
+        cfd['romance'].most_common(20)
+        cfd['romance']['could']
+
+8. 词链表
+    链表（即列表的形式）
+        连接
+        追加
+        索引
+        切片
+
+9. 细粒度的选择词
+    a. {w|w ∈ V & P(W)}
+    b. [w for w in V if P(W)]
+
+10. 词语搭配和双连词
+    from nltk.util import bigrams
+    a = bigrams(['more','is','said','than','done'])
+    # <generator object bigrams at 0x1209ace08>
+    list(a)
+    # [('more','is'),('is','said'),('said','than'),('than','done')]
+
+11. 自然语言处理NLP
+    自然语言：指一种自然地随文化演化的语言，就是人们日常交流使用的语言。
+    自然语言处理：用计算机对自然语言进行操作
+    自然语言处理研究的内容：
+        词意消歧
+        指代理解
+        自动生成语言
+        机器翻译
+        人机对话系统
+        文本含义识别
+
+12. 词典资源
+    词典或者词典资源是一个词 和/或 短语 以及一些相关信息的集合，
+    例如：词性和词意定义等相关信息。
+
+    词典资源附属于文本，通常在文本的帮助下创建和丰富。
+    复杂的词典资源包括在词汇项内和跨词汇项的复杂的结构。
+
+    NLTK包括的词典资源：
+        词汇列表语料库
+            NTLK包括一些仅仅包含词汇列表的语料库。
+            词汇语料库时Unix中的/usr/dict/words文件，被一些拼写检查程序使用。
+            我们可以用它来寻找文本语料中不寻常的或拼写错误的词汇。
+
+        停用词语料库
+            就是那些高频词汇，如:the,to,我们有时在进一步的处理之前想要将它们从文档中过滤。
+            停用词通常几乎没有什么词汇内容，而它们的出现会使区分文本变困难。
+
+        发音的词典
+            一个稍微丰富的词典资源是一个表格，在每一行中含有一个词加一些性质。
+            NLTK中包括美国英语的CMU发音词典，它是为语音合成器使用而设计的。
+
+            对每一个词，这个词典资源提供语音的代码--不同的声音不同的标签--叫做因素。
+            请看fire有两个发音（美式英语中）：单音节F AY1 R 和双音节F AY1 ER0.
+
+        比较词表
+            表格词典的另一个例子是比较词表。
+            NLTK中包含了所谓的Swadesh wordlists 斯瓦迪士核心词列表。
+            几种语言中约200个常用词的列表。
+
+            我们可以通过在entries()方法中指定一个语言链表来访问多语言中的同源词。
+
+        词汇工具：Toolbox
+            可能最流行的语言学家用来管理数据的工具是Toolbox，以前叫做Shoebox，
+            因为它用满满的档案卡片占据了语言学家的旧鞋盒。
+
+            一个Toolbox文件由一个大量条目的集合组成，其中每个条目由一个或多个字段组成。
+            大多数字段都是可选的活重复的。
+            这意味着这个词资源不能作为一个表格或电子表格来处理
+
+        WordNet
+            是面向语义的英语词典，类似于传统词典，但具有更丰富的结构。
+            NLTK中包括英语WordNet，共有155,287个词和117,659个同义词集合。
+
+13. WordNet
+    WordNet的层次结构：
+        WordNet的同义词集对应于抽象的概念，它们并不总是有对应的英语词汇。
+        这些概念在层次结构中相互联系在一起。
+
+        一些概念也很一般，如实体，状态，事件；
+        这些被称为独一无二的根同义词集。
+
+        如：油老虎和有仓门式后背的汽车等就比较具体的多。
+
+
+
