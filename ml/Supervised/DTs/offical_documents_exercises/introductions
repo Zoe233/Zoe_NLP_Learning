@@ -1,0 +1,5 @@
+使用scikit-learn实现决策树官方文档地址：http://scikit-learn.org/stable/modules/tree.html#classification
+
+决策树（DTs)是一个无参数的监督学习，用于分类和回归。
+目标是构建模型通过数据特征学习简单的决策规则，实现预测目标变量的作用。
+
