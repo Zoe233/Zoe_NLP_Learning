@@ -3,7 +3,9 @@ import random
 import math
 import operator
 
-class knn_handwriting(object):
+DEBUG = False
+
+class HandWritngKnn(object):
     '''
     根据KNN算法的一般步骤，自定义函数方法，手写Iris数据集的KNN算法
     '''
@@ -12,15 +14,16 @@ class knn_handwriting(object):
         self.split = 0.67
         self.trainSet = []
         self.testSet =[]
-        self.k =3
+        self.k = 3
 
     def run(self):
-        self.trainSet,self.testSet =  self.loadDataset(filename=self.filename,split=self.split)
-        print(self.trainSet)
-        print(len(self.trainSet))
-        print('*' * 50)
-        print(self.testSet)
-        print(len(self.testSet))
+        self.trainSet,self.testSet = self.loadDataset(filename=self.filename,split=self.split)
+        if DEBUG:
+            print(self.trainSet)
+            print(len(self.trainSet))
+            print('*' * 50)
+            print(self.testSet)
+            print(len(self.testSet))
 
         # 单条测试数据调用。用于测试函数
         # neighbors =self.getNeighbors(self.trainSet,self.testSet[0],3)
@@ -32,14 +35,14 @@ class knn_handwriting(object):
         # 批量测试测试集与训练模型结果。
         correct = 0
         for x in range(len(self.testSet)):
-            neighbors = self.getNeighbors(self.trainSet,self.testSet[x],self.k)
+            neighbors = self.getNeighbors(self.trainSet, self.testSet[x], self.k)
             result = self.getResponse(neighbors)
             if result == self.testSet[x][-1]:
-                correct +=1
+                correct += 1
             else:
                 correct = correct
         accuracy = correct/len(self.testSet)*100.0
-        print(accuracy)
+        print('Accuracy:', accuracy)
 
     def loadDataset(self,filename,split,trainSet=[],testSet=[]):
         '''
@@ -48,7 +51,7 @@ class knn_handwriting(object):
         :param split: 用于将原始数据随机分隔为 trainSet 和 TestSet 的[0,1]之间的数据。
         :param trainSet: 用于存放训练集数据
         :param testSet: 用于存放测试集数据
-        :return:
+        :return:trainSet, TestSet
         '''
         with open(filename,'r') as Iris:
             lines = csv.reader(Iris)
@@ -93,11 +96,11 @@ class knn_handwriting(object):
             distances.append(dist)
 
             res_dic[dist] = instanceClassName
-        # distances.sort(key = operator.itemgetter(1)) # 首先不理解operator.itemgetter的用法，另外此用法报错
         distances.sort()
-        print('+'*100)
-        print(distances)
-        print(res_dic)
+        if DEBUG:
+            print('+'*100)
+            print(distances)
+            print(res_dic)
         min_k_dist =  sorted(res_dic.keys())[0:k]
         neighbors = []
         for v in min_k_dist:
@@ -114,17 +117,17 @@ class knn_handwriting(object):
         for x in range(len(neighbors)):
             response = neighbors[x]
             if response in classVotes:
-                classVotes[response]+=1
+                classVotes[response] += 1
             else:
-                classVotes[response] =1
+                classVotes[response] = 1
         sortedVotes = sorted(classVotes.items())
         return sortedVotes[0][0]
 
 
 
 if __name__=='__main__':
-    knn_obj = knn_handwriting()
-    knn_obj.run()
+    knnObj = HandWritngKnn()
+    knnObj.run()
 
 
 

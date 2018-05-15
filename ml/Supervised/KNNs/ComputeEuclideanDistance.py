@@ -1,3 +1,5 @@
+# -*- coding:utf-8 -*-
+
 # 通过math模块，手写计算Euclidean Distance
 import math
 def ComputeEuclideanDistance(x1, y1, x2, y2):

@@ -1,3 +1,4 @@
+# -*- coding:utf-8 -*-
 from sklearn import neighbors
 from sklearn import datasets
 
