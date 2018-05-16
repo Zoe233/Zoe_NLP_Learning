@@ -1,0 +1,32 @@
+TensorFlow文件保存Saver的介绍和使用
+
+    1. *.pb和*.ckpt的格式介绍
+
+        通常使用TensorFlow保存模型时都使用ckpt格式的模型文件，使用类似的语句来保存模型。
+            tf.train.Saver().save(sess,
+                                ckpt_file_path,
+                                max_to_keep=4,
+                                keep_checkpoint_every_n_hours=2)
+        使用如下语句来回复所有变量信息
+            saver.restore(sess,tf.train.latest_checkpoint('./ckpt'))
+        但这种方式有几个缺点：
+            1.依赖TensorFlow,只能在其框架下使用；
+
+        谷歌官方推荐的保存模型的方式是PB文件。
+            优点：
+                1.语言独立性，可独立运行，封闭的序列化格式，任何语言都能解析它，它允许其他语言和深度学习框架读取、继续训练和迁移TensorFlow的模型。
+                2.实现创建模型与使用模型的解耦，使得前向推导inference的代码统一
+                3.保存为PB文件时，模型的变量都会变成固定的，导致模型的大小会大大减小，适合在手机端运行。
+
+    2. PB文件的介绍
+        PB文件 表示 MetaGraph 的 protocol buffer格式的文件，
+        MetaGraph 包括计算图，数据流，以及相关的变量和输入输出signature 以及asserts指创建计算图时额外的文件。
+
+        主要使用tf.SavedModelBuilder类。
+        可以把多个计算图保存到一个PB文件中，
+        如果有多个MetaGranph，那么只会保留第一个MetaGraph的版本号，
+        并且必须为每个MetaGraph指定特殊的名称tag用以区分，通常这个名称tag以该计算图的功能和使用到的设备命名，
+        比如：serving or training , CPU or GPU。
+
+    3. 典型的PB文件的代码：
+        tf_saver_pb
