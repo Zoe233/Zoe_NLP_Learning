@@ -1,10 +1,11 @@
+# -*- coding:utf-8 -*-
+
 # 第一步：获取原始数据集
 # 读取csv文件数据
 import os
-base_dir = os.path.dirname(os.path.abspath(__file__))
+import csv
 
-import csv # 标准库
-# 由于csv库有自己的换行符，需要把open方法的newline设置为空，否则在Excel中会出现数据隔行。
+base_dir = os.path.dirname(os.path.abspath(__file__))
 
 feature_list =[]  # 用于存储特征属性的值
 label_list =[]  # 用于存储目标变量Class_buys_computer的值
@@ -12,6 +13,7 @@ label_list =[]  # 用于存储目标变量Class_buys_computer的值
 
 # 读取
 with open(os.path.join(base_dir,'AllElectronics.csv'),'r',encoding='utf-8',newline='') as f:
+    # 由于csv库有自己的换行符，需要把open方法的newline设置为空，否则在Excel中会出现数据隔行。
     reader = csv.reader(f) # <_csv.reader object at 0x10e609a58> csv对象
     headers = reader.__next__()  # headers 中存储的为第一行Titles ['RID', 'age', 'income', 'student', 'credit_rating', 'class_buys_computer']
 
@@ -34,7 +36,7 @@ print(feature_list)
 # sklearn要求输入端的数据都是数值型的，而不是字符串类型的。
 # 比方age要将{"youth":1,"high":2,"senior":3}
 
-# vectorize features 
+# Vectorize features
 from sklearn.feature_extraction import DictVectorizer  # 数据格式转换工具。
 # 可以将字典的数据直接转换为0，1的类型，字典数据向量化
 vec = DictVectorizer()
