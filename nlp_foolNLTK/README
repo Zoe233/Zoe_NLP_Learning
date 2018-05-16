@@ -1,1 +1,41 @@
 FoolNLTK-master
+
+定制自己的模型
+git clone https://github.com/rockyzhengwu/FoolNLTK.git
+cd FoolNLTK/train
+
+执行完成后，当前目录下生成目录：FoolNLTK
+尝试自动train模型的效果。
+
+
+由于FoolNLTK 只提供了 分词、词性标注、命名实体识别的三项功能，且相对较为简单，可以查看源码查看实现原理。
+支持 用户自定义词典。
+
+根据知识掌握的不同情况，理解不同的NLP方向的内容有不同程度的帮助。
+
+- data
+    - map.zip
+    - ner.pb
+    - pos.pb
+    - seg.pb
+    以上*.pb文件均为用tensorflow训练好模型后，生成的相应的pb文件。
+
+    注意：*.pb和*.ckpt的格式介绍
+
+        通常使用TensorFlow保存模型时都使用ckpt格式的模型文件，使用类似的语句来保存模型。
+            tf.train.Saver().save(sess,
+                                ckpt_file_path,
+                                max_to_keep=4,
+                                keep_checkpoint_every_n_hours=2)
+        使用如下语句来回复所有变量信息
+            saver.restore(sess,tf.train.latest_checkpoint('./ckpt'))
+        但这种方式有几个缺点：
+            1.依赖TensorFlow,只能在其框架下使用；
+
+        谷歌官方推荐的保存模型的方式是PB文件。
+            优点：
+                1.语言独立性，可独立运行，封闭的序列化格式，任何语言都能解析它，它允许其他语言和深度学习框架读取、继续训练和迁移TensorFlow的模型。
+                2.实现创建模型与使用模型的解耦，使得前向推导inference的代码统一
+                3.保存为PB文件时，模型的变量都会变成固定的，导致模型的大小会大大减小，适合在手机端运行。
+
+- fool
