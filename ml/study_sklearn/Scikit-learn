@@ -1,0 +1,112 @@
+Scikit-learn
+1. 安装：
+	pip install scikit-learn
+
+2. Scikit learn 的作用：
+	Classification   
+	Regression
+	Clustering
+	Dimensionality reduction
+	Model Selection
+	Proprocessing
+
+3. Scikit learn 的模型方法，如何选择适当的方法，达成目标
+	Sklearn官网提供了一个流程图，蓝色圆圈内是判断条件，绿色方框内是可以选择的算法。
+	
+	从START开始，首先看数据的样本是否>50， 小于则需要收集更多的数据。
+
+	从图中，可以看到算法有四类：
+		分类
+		回归
+		聚类
+		降维
+
+	其中分类和回归是监督式学习，即每个数据对应一个label。
+	聚类是非监督式学习，即没有label。
+	另外一类是降维，当数据集有很多很多属性的时候，可以通过降维算法把属性归纳起来。
+	例如，20个属性变为2个，这不是挑出2个，而是压缩称为2个，它们集合了20个属性的所有特征，相当于把重要的信息提取的更好，不重要的信息就不要了。
+
+	看问题属于哪一类问题，是分类还是回归，还是聚类，就选择相应的算法。
+	当然还要考虑数据的大小，例如100K是一个阈值。
+
+	可以发现有些方法及可以作为分类，也可以作为回归，例如SGD.
+
+4. 通用学习模式
+	Sklearn把所有机器学习的模式整合统一起来了，学会一个模式就可以通吃其他不同类型的学习模式。
+
+	sklearn_knn_iris.py
+
+	例如：分类器。
+		from sklearn import datasets
+		from sklearn.model_selection import train_test_split
+		from sklearn.neighbors import KNeighborsClassifier
+		...
+		knn = KNeighborsClassifier()
+		knn.fit(X_train, y_train)
+		print(knn.predict(X_test))
+		print(y_test)
+
+5. sklearn强大数据库
+	SKlearn中的 datasets。
+	很多而且很有用，可以用来学习算法模型。
+
+	sklearn_make_regression.py
+
+	eg:
+		boson房价，糖尿病，数字，Iris鸢尾花，
+		也可以生成虚拟的数据，例如用来训练线性回归模型的数据，可以用函数来生成。
+		datasets.make_regession(n_samples = 100, n_features = 100, n_informative = 10, n_targets = 1, bias = 0.0, effective_rank = None, tail_strength = 0.5, noise = 0.0, shuffle = True, coef = False, random_state = None)[source]
+
+6. sklearn常用属性与功能
+	查看Model的属性和功能。
+
+	以LinearRegressor为例。
+	sklearn_linear_regression.py
+
+
+
+7. 高级使用：正规化 Normalization
+	由于资料的 偏差bias和 跨度 会影响机器学习的成效，因此 正规化（标准化）数据可以提升机器学习的成效。
+
+	sklearn_normalization_svc
+
+8. 检验神经网络 Evaluation
+	做好了我们自己的神经网络之后，应该如何来评价自己的神经网络，
+	从评价当中如何改进我们的神经网络。
+
+	为什么要评价，检验学习到的神经网络？
+		在神经网络的训练中，神经网络可能会因为各种各样的问题，出现学习的效率不高，或者是因为干扰太多，
+		学到最后并没有很好的学到规律。
+		而这其中的原因可能是多方面的，可能是数据问题，学习效率等参数问题。
+
+	什么是Training Data和Test Data？
+		为了检验，评价神经网络，避免和改善这些问题。
+		我们通常会把收集到的数据分为训练数据和测试数据，一般用于训练的数据可以是所有数据的70%，剩下的30%可以拿来测试学习结果。
+
+	误差曲线？
+		评价机器学习可以从误差这个值开始，随着训练时间的变长，优秀的神经网路能预测到更为精准的答案，预测的误差也会越少。
+		到最后能够提升的空间变小，曲线也趋于水平。
+
+	准确度曲线？
+		除了误差曲线，我们可以看精确度曲线
+		最好的精度是趋向于100%精确。
+
+		例如，100个样本中，我有90张样本分类正确，那就是说我的预测精确度是90%。
+		不过，不知道大家有没有想过对于回归的问题呢？
+		怎样看预测值是连续数字的精确度？
+		这时，我们可以引入R2分数在测量回归问题的精度。
+		R2给出的最大精度也是100%.
+
+		所以分类和回归就都有的统一的精度标准。
+		除了这些评分标准，我们还有很多其他的标准，比如F1分数，用于测量不均衡数据的精度。
+
+	正则化？
+		过拟合。
+		训练时的误差比测试的误差小。
+		在机器学习中，解决过拟合有很多方法，其中就有L1,L2正则化，dropuout等方法。
+
+	交叉验证
+		神经网络也有很多参数，我们怎么确定哪样的参数能够能有效的解决现有的问题呢？
+		这时，交叉验证就是最好的途径了。
+		交叉验证不仅仅可以用于神经网络的调参，还能用于其他机器学习方法的调参。
+		同样是选择
