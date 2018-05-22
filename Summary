@@ -1,0 +1,86 @@
+1.分词
+jieba,foolntlk,pynlpir
+NLTK
+自定义词汇
+停用词表过滤
+去除数据非文本部分
+处理中文编码问题 'utf-8'
+
+2.特征工程
+	在分词后，关键的特征预处理步骤是：有向量化或向量化的特例Hash Trick
+
+	词袋模型 Bag of Words，简称BoW。
+		词袋模型假设我们不考虑文本中词与词之间的上下文关系，仅仅只考虑所有词的权重。
+		而权重与词在文本中出现的频率有关。
+		TF-IDF进行特征的权重修正，再将特征进行标准化。
+
+		词袋模型三步：分词tokenizing, 统计修订词特征值counting, 标准化normalizing。
+
+		（与词袋模型类似的一个模型是 词集模型 Set of Words,SoW， 和词袋模型唯一的不同是它仅仅考虑词是否在文本中出现，而不是考虑词频。
+		就是一个词在文本中出现1次或多次的特征处理是一样的。
+		大多数时候，我们使用词袋模型，后面的讨论也是以词袋模型为主。）
+
+		-- 词袋模型有很大的局限性，仅仅考虑了词频，没有考虑上下文的关系，因此会丢失一部分文本的语义。
+		如果目的是分类聚类，则词袋模型表现的很好。
+
+
+	词袋模型之向量化
+		在词袋模型的统计词频这一步，我们会得到该文本中所有词的词频，
+		有了词频，我们就可以用词向量表示这个文本。
+
+		文本特征工程：向量化的常用方法：
+			TF-IDF/ Word2Vec/ CountVectorizer
+			这些都可以使用sklearn找到直接可以使用的类
+			https://blog.csdn.net/ximibbb/article/details/79264574
+
+		如：sicikit-learn的CountVectorizer类可以帮我完成。
+			这个类可以帮我们完成文本的词频统计与向量化。
+
+			from sklearn.feature_extraction.text import CountVectorizer
+			vectorizer = CountVectorizer()
+			corpus = ['我们是中国人','我来到北京','我到了清华大学','八嘎八嘎八嘎吖噜！']
+			print(vectorizer.fit_transform(corpus)))
+
+
+		向量化的方法很好用，也很直接，但是在有些场景下很难使用；
+		如分词后的词汇表非常大，此时直接使用向量化的方法，将对应的样本特征矩阵载入内存，有可能将内存撑爆。
+		解决方法： 对特征进行降维，而Hash Trick就是非常常用的文本特征降维方法。
+
+	Hash Trick -- 常用的文本特征降维方法
+		在Hash Trick中，我们会定义一个特征Hash后对应的哈希表的大小，
+		这个哈希表的维度会远远小于我们的词汇表的特征维度，因此可以看成是降维。
+
+		具体的方法是：
+			对应任意一个特征名，我们会用Hash函数找到对应哈希表的位置，然后将特征名对应的词频统计值累加到该哈希表的位置。
+
+		这种方法来处理特征，哈希后的特征是否能够很好的代表哈希前的特征呢？
+		从实际应用中说，由于文本特征的高稀疏性，这么做是可行的。
+
+		scikit-learn的HashingVectorizer类，实现了基于signed hash trick的算法.
+			from sklearn.feature_extraction.text import HashingVectorizer
+			corpus=["I come to China to travel", 
+				    "This is a car polupar in China",          
+				    "I love tea and Apple ",   
+				    "The work is to write some papers in science"]
+			vectoizer = HashingVectorizer(n_features = 6, norm = None)
+			print(vectoizer.fit_transform(corpus))
+
+		大家可以看到结果里面有负数，这是因为我们的哈希函数ξ可以哈希到1或者-1导致的。
+		和PCA类似，Hash Trick降维后的特征我们已经不知道它代表的特征名字和意义。
+		此时我们不能像上一节向量化时候可以知道每一列的意义，所以Hash Trick的解释性不强。
+
+	向量化和Hash Trick小结：
+		一般来说，只要词汇表的特征不至于太大，大到内存不够用，肯定是使用一般意义的向量化比较好。因为向量化的方法解释性很强，我们知道每一维特征对应哪一个词，进而我们还可以使用TF-IDF对各个词特征的权重修改，进一步完善特征的表示。
+
+		而Hash Trick用大规模机器学习上，此时我们的词汇量极大，使用向量化方法内存不够用，而使用Hash Trick降维速度很快，降维后的特征仍然可以帮我们完成后续的分类和聚类工作。当然由于分布式计算框架的存在，其实一般我们不会出现内存不够的情况。因此，实际工作中我使用的都是特征向量化。
+
+	TF-IDF预处理
+		scikit-learn中，有两种方法进行TF-IDF的预处理。
+		第一种方法是用CountVectorizer类向量化之后再调用TfidTransformer类进行预处理。
+		第二种方法是直接用TfidTransformer完成向量化与TF-IDF预处理。
+
+
+	TF-IDF是非常常用的文本挖掘预处理基本步骤，但是如果预处理中使用了Hash Trick，则一般就无法使用TF-IDF了。
+	因为Hash Trick后我们已经无法得到哈希后的各特征的IDF的值。
+	使用了IF-IDF并标准化以后，我们就可以使用各个文本的词向量作为文本的特征，进行分类或者聚类分析。
+3.建立分析模型
